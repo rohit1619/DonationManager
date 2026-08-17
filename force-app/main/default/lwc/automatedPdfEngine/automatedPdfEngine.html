@@ -1,1 +1,13 @@
-<template></template>
+<template>
+    <div class={containerClass}>
+        <template lwc:if={showChrome}>
+            <div class="slds-p-around_small">
+                <p class="slds-text-title_caps slds-m-bottom_xx-small">Native PDF Engine</p>
+                <p class="slds-text-body_small">{statusMessage}</p>
+                <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                    Polls every 15 seconds while this app session is open.
+                </p>
+            </div>
+        </template>
+    </div>
+</template>

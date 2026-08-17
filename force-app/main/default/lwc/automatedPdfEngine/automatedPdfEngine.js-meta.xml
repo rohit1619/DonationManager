@@ -3,8 +3,10 @@
     <apiVersion>62.0</apiVersion>
     <isExposed>true</isExposed>
     <masterLabel>Automated PDF Engine</masterLabel>
-    <description>Headless utility-bar worker that polls Pending_PDF_Generation__c and fills AcroForm PDFs with pdf-lib in the browser.</description>
+    <description>Utility-bar worker that polls Pending_PDF_Generation__c and fills AcroForm PDFs with pdf-lib in the browser.</description>
     <targets>
         <target>lightning__UtilityBar</target>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
     </targets>
 </LightningComponentBundle>
