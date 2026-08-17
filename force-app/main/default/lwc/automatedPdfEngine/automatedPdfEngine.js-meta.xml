@@ -7,4 +7,8 @@
     <targets>
         <target>lightning__UtilityBar</target>
     </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__UtilityBar">
+        </targetConfig>
+    </targetConfigs>
 </LightningComponentBundle>
