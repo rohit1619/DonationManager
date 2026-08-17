@@ -1,4 +1,4 @@
-import { LightningElement } from 'lwc';
+import { LightningElement, api, track } from 'lwc';
 import { loadScript } from 'lightning/platformResourceLoader';
 import PDF_LIB from '@salesforce/resourceUrl/pdfLib';
 import getPendingJobs from '@salesforce/apex/BackgroundPdfQueueController.getPendingJobs';
@@ -9,6 +9,13 @@ const POLL_INTERVAL_MS = 15000;
 const MAX_JOBS_PER_POLL = 1;
 
 export default class AutomatedPdfEngine extends LightningElement {
+    /**
+     * When true, hides the utility panel chrome (used when embedded in admin UI).
+     */
+    @api hideChrome = false;
+
+    @track statusMessage = 'Starting PDF engine...';
+
     pdfLibInitialized = false;
     pollTimerId;
     isProcessing = false;
@@ -24,13 +31,26 @@ export default class AutomatedPdfEngine extends LightningElement {
         this.stopPolling();
     }
 
+    get showChrome() {
+        return !this.hideChrome;
+    }
+
+    get containerClass() {
+        return this.hideChrome ? 'engine-host engine-host_hidden' : 'engine-host';
+    }
+
     async bootstrap() {
         try {
+            this.statusMessage = 'Loading pdf-lib...';
             await this.ensurePdfLib();
+            this.statusMessage = 'Idle — waiting for pending jobs.';
             this.startPolling();
             await this.processQueue();
         } catch (error) {
-            // Headless worker: keep polling even if the first cycle fails.
+            this.statusMessage = this.normalizeError(
+                error,
+                'Bootstrap failed; retrying on poll interval.'
+            );
             // eslint-disable-next-line no-console
             console.error('automatedPdfEngine bootstrap failed', error);
             this.startPolling();
@@ -72,6 +92,7 @@ export default class AutomatedPdfEngine extends LightningElement {
             await this.ensurePdfLib();
             const jobs = await getPendingJobs({ maxJobs: MAX_JOBS_PER_POLL });
             if (!Array.isArray(jobs) || jobs.length === 0) {
+                this.statusMessage = 'Idle — waiting for pending jobs.';
                 return;
             }
 
@@ -79,9 +100,12 @@ export default class AutomatedPdfEngine extends LightningElement {
                 if (this.isDestroyed) {
                     break;
                 }
+                this.statusMessage = 'Processing ' + (job.jobName || job.jobId) + '...';
                 await this.processSingleJob(job);
             }
+            this.statusMessage = 'Idle — waiting for pending jobs.';
         } catch (error) {
+            this.statusMessage = this.normalizeError(error, 'Poll cycle failed.');
             // eslint-disable-next-line no-console
             console.error('automatedPdfEngine poll cycle failed', error);
         } finally {
