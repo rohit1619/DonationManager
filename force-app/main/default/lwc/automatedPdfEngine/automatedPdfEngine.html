@@ -1,13 +1,31 @@
 <template>
-    <div class={containerClass}>
-        <template lwc:if={showChrome}>
-            <div class="slds-p-around_small">
-                <p class="slds-text-title_caps slds-m-bottom_xx-small">Native PDF Engine</p>
-                <p class="slds-text-body_small">{statusMessage}</p>
-                <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
-                    Polls every 15 seconds while this app session is open.
-                </p>
+    <lightning-card title="PDF Engine" icon-name="utility:sync">
+        <div class="slds-p-around_medium">
+            <div class="slds-grid slds-grid_vertical-align-center slds-m-bottom_small">
+                <div class="slds-col slds-grow">
+                    <p class="slds-text-title_caps slds-m-bottom_xx-small">Worker Status</p>
+                    <p class="slds-text-body_regular">{statusMessage}</p>
+                </div>
+                <div class="slds-col slds-grow-none">
+                    <lightning-button
+                        variant="brand"
+                        label="Process Queue Now"
+                        onclick={handleProcessNow}
+                        disabled={isBusy}
+                    ></lightning-button>
+                </div>
             </div>
-        </template>
-    </div>
+
+            <template lwc:if={lastError}>
+                <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_small" role="alert">
+                    <h2>{lastError}</h2>
+                </div>
+            </template>
+
+            <p class="slds-text-body_small slds-text-color_weak">
+                Keep this tab open while jobs are Pending. The engine polls automatically every
+                {pollSeconds} seconds and also runs when you click Process Queue Now.
+            </p>
+        </div>
+    </lightning-card>
 </template>

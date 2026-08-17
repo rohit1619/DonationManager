@@ -64,4 +64,8 @@
         <tab>PDF_Template_Manager</tab>
         <visibility>Visible</visibility>
     </tabSettings>
+    <tabSettings>
+        <tab>PDF_Engine</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
 </PermissionSet>

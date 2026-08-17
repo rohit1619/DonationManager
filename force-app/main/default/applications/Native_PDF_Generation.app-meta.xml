@@ -12,6 +12,7 @@
     <isNavTabPersistenceDisabled>false</isNavTabPersistenceDisabled>
     <label>Native PDF Generation</label>
     <navType>Standard</navType>
+    <tabs>PDF_Engine</tabs>
     <tabs>PDF_Template_Manager</tabs>
     <tabs>PDF_Template__c</tabs>
     <tabs>Pending_PDF_Generation__c</tabs>
