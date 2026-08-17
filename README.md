@@ -40,7 +40,7 @@ sf org open
 4. Map each discovered PDF text field to a Salesforce field path (`Name`, `BillingCity`, `Account.Name`, etc.).
 5. Save.
 
-The utility bar already hosts `automatedPdfEngine` as a background component for this app. Keep at least one browser session on the app for background processing.
+`automatedPdfEngine` is hosted in the app utility bar and is also embedded on the PDF Template Manager page so polling starts while admins work there. Keep a browser session on the Native PDF Generation app (or open the PDF Engine utility item) for background processing.
 
 ## Enqueue a job
 
