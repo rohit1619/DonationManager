@@ -152,6 +152,7 @@ export default class AutomatedPdfEngine extends LightningElement {
                     })
                 );
             }
+            this.statusMessage = 'Idle — waiting for pending jobs.';
         } catch (error) {
             const message = this.normalizeError(error, 'Poll cycle failed.');
             this.statusMessage = message;
