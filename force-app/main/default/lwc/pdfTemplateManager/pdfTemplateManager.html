@@ -1,0 +1,129 @@
+<template>
+    <lightning-card title="PDF Template Manager" icon-name="doctype:pdf">
+        <div class="slds-p-around_medium">
+            <template lwc:if={isLibraryLoading}>
+                <div class="slds-align_absolute-center slds-m-bottom_medium">
+                    <lightning-spinner alternative-text="Loading PDF library" size="small"></lightning-spinner>
+                </div>
+            </template>
+
+            <template lwc:if={errorMessage}>
+                <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_medium" role="alert">
+                    <span class="slds-assistive-text">error</span>
+                    <h2>{errorMessage}</h2>
+                </div>
+            </template>
+
+            <template lwc:if={successMessage}>
+                <div class="slds-notify slds-notify_alert slds-theme_success slds-m-bottom_medium" role="alert">
+                    <span class="slds-assistive-text">success</span>
+                    <h2>{successMessage}</h2>
+                </div>
+            </template>
+
+            <lightning-input
+                class="slds-m-bottom_small"
+                label="Template Name"
+                value={templateName}
+                required
+                onchange={handleTemplateNameChange}
+                disabled={isSaving}
+            ></lightning-input>
+
+            <lightning-combobox
+                class="slds-m-bottom_small"
+                name="objectApiName"
+                label="Salesforce Object"
+                value={objectApiName}
+                placeholder="Select an object"
+                options={objectOptions}
+                required
+                onchange={handleObjectChange}
+                disabled={isSaving}
+            ></lightning-combobox>
+
+            <div class="slds-form-element slds-m-bottom_medium">
+                <label class="slds-form-element__label" for="pdf-file-input">
+                    <abbr class="slds-required" title="required">*</abbr>
+                    Fillable AcroForm PDF
+                </label>
+                <div class="slds-form-element__control">
+                    <input
+                        id="pdf-file-input"
+                        class="slds-file-selector__input slds-assistive-text"
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        onchange={handleFileChange}
+                        disabled={isSaving}
+                    />
+                    <label class="slds-file-selector__body" for="pdf-file-input">
+                        <span class="slds-file-selector__button slds-button slds-button_neutral">
+                            Upload PDF
+                        </span>
+                        <span class="slds-file-selector__text slds-medium-show">
+                            {selectedFileLabel}
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <template lwc:if={hasDiscoveredFields}>
+                <div class="slds-m-bottom_small">
+                    <h3 class="slds-text-heading_small slds-m-bottom_x-small">Field Mappings</h3>
+                    <p class="slds-text-body_small slds-m-bottom_small">
+                        Map each discovered PDF text field ID to a Salesforce field API path
+                        (for example Name, BillingCity, or Account.Name).
+                    </p>
+                    <table class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_fixed-layout">
+                        <thead>
+                            <tr class="slds-line-height_reset">
+                                <th scope="col">
+                                    <div class="slds-truncate" title="PDF Field Name">PDF Field Name</div>
+                                </th>
+                                <th scope="col">
+                                    <div class="slds-truncate" title="Salesforce Field Path">Salesforce Field Path</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template for:each={fieldMappings} for:item="row">
+                                <tr key={row.pdfFieldName}>
+                                    <td>
+                                        <div class="slds-truncate" title={row.pdfFieldName}>{row.pdfFieldName}</div>
+                                    </td>
+                                    <td>
+                                        <lightning-input
+                                            type="text"
+                                            label="Salesforce Field Path"
+                                            variant="label-hidden"
+                                            data-pdf-field={row.pdfFieldName}
+                                            value={row.salesforceFieldPath}
+                                            placeholder="e.g. Name"
+                                            onchange={handleMappingChange}
+                                            disabled={isSaving}
+                                        ></lightning-input>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+
+            <div class="slds-m-top_medium">
+                <lightning-button
+                    variant="brand"
+                    label="Save Template"
+                    onclick={handleSave}
+                    disabled={isSaveDisabled}
+                ></lightning-button>
+            </div>
+
+            <template lwc:if={isSaving}>
+                <div class="slds-m-top_medium slds-is-relative" style="min-height: 3rem;">
+                    <lightning-spinner alternative-text="Saving template" size="small"></lightning-spinner>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

@@ -1,0 +1,10 @@
+.sfdx/
+.sf/
+.localdevserver/
+node_modules/
+coverage/
+.vscode/settings.json
+*.log
+.DS_Store
+.idea/
+*.iml
