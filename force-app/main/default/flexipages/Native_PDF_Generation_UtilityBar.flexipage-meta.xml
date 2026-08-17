@@ -3,10 +3,6 @@
     <flexiPageRegions>
         <itemInstances>
             <componentInstance>
-                <componentInstanceProperties>
-                    <name>eager</name>
-                    <value>true</value>
-                </componentInstanceProperties>
                 <componentName>automatedPdfEngine</componentName>
                 <identifier>automatedPdfEngine_Worker</identifier>
             </componentInstance>
