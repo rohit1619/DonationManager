@@ -40,7 +40,19 @@ sf org open
 4. Map each discovered PDF text field to a Salesforce field path (`Name`, `BillingCity`, `Account.Name`, etc.).
 5. Save.
 
-`automatedPdfEngine` is hosted in the Native PDF Generation app utility bar with decorator properties (`label`, `icon`, `eager=true`, panel size). It is also embedded on the PDF Template Manager page so polling starts while admins work there. Keep a browser session on the app for background processing.
+## Generate a PDF (important)
+
+The browser worker only runs while a page hosting it is open.
+
+1. Open the **Native PDF Generation** app.
+2. Open the **PDF Engine** tab (or **PDF Template Manager**, which also hosts the worker).
+3. Confirm the worker status says **Ready — waiting for pending jobs.**
+4. Enqueue a job (Execute Anonymous or insert a Pending PDF Generation row).
+5. Click **Process Queue Now**, or wait up to 5 seconds for auto-poll.
+6. Refresh the Pending PDF Generation record — status should become **Completed**.
+7. Open the Account/Contact **Files** related list for the filled PDF.
+
+If status never leaves **Pending**, the worker tab is not open or pdf-lib failed to load (error shows on the PDF Engine card).
 
 ## Enqueue a job
 

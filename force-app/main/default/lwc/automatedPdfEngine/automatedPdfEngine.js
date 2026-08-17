@@ -1,25 +1,27 @@
-import { LightningElement, api, track } from 'lwc';
+import { LightningElement, track } from 'lwc';
 import { loadScript } from 'lightning/platformResourceLoader';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import PDF_LIB from '@salesforce/resourceUrl/pdfLib';
 import getPendingJobs from '@salesforce/apex/BackgroundPdfQueueController.getPendingJobs';
 import finalizeJob from '@salesforce/apex/BackgroundPdfQueueController.finalizeJob';
 import failJob from '@salesforce/apex/BackgroundPdfQueueController.failJob';
 
-const POLL_INTERVAL_MS = 15000;
-const MAX_JOBS_PER_POLL = 1;
+const POLL_INTERVAL_MS = 5000;
+const MAX_JOBS_PER_POLL = 3;
 
 export default class AutomatedPdfEngine extends LightningElement {
-    /**
-     * When true, hides the utility panel chrome (used when embedded in admin UI).
-     */
-    @api hideChrome = false;
-
     @track statusMessage = 'Starting PDF engine...';
+    @track lastError = '';
+    @track isBusy = false;
 
     pdfLibInitialized = false;
     pollTimerId;
     isProcessing = false;
     isDestroyed = false;
+
+    get pollSeconds() {
+        return Math.round(POLL_INTERVAL_MS / 1000);
+    }
 
     connectedCallback() {
         this.isDestroyed = false;
@@ -31,26 +33,25 @@ export default class AutomatedPdfEngine extends LightningElement {
         this.stopPolling();
     }
 
-    get showChrome() {
-        return !this.hideChrome;
-    }
-
-    get containerClass() {
-        return this.hideChrome ? 'engine-host engine-host_hidden' : 'engine-host';
+    handleProcessNow() {
+        this.processQueue(true);
     }
 
     async bootstrap() {
         try {
             this.statusMessage = 'Loading pdf-lib...';
             await this.ensurePdfLib();
-            this.statusMessage = 'Idle — waiting for pending jobs.';
+            this.statusMessage = 'Ready — waiting for pending jobs.';
+            this.lastError = '';
             this.startPolling();
-            await this.processQueue();
+            await this.processQueue(false);
         } catch (error) {
-            this.statusMessage = this.normalizeError(
+            const message = this.normalizeError(
                 error,
                 'Bootstrap failed; retrying on poll interval.'
             );
+            this.statusMessage = message;
+            this.lastError = message;
             // eslint-disable-next-line no-console
             console.error('automatedPdfEngine bootstrap failed', error);
             this.startPolling();
@@ -60,7 +61,7 @@ export default class AutomatedPdfEngine extends LightningElement {
     startPolling() {
         this.stopPolling();
         this.pollTimerId = window.setInterval(() => {
-            this.processQueue();
+            this.processQueue(false);
         }, POLL_INTERVAL_MS);
     }
 
@@ -71,51 +72,112 @@ export default class AutomatedPdfEngine extends LightningElement {
         }
     }
 
-    async ensurePdfLib() {
-        if (this.pdfLibInitialized && window.PDFLib && window.PDFLib.PDFDocument) {
-            return;
+    resolvePdfLib() {
+        const candidates = [
+            typeof window !== 'undefined' ? window.PDFLib : null,
+            typeof self !== 'undefined' ? self.PDFLib : null,
+            typeof globalThis !== 'undefined' ? globalThis.PDFLib : null
+        ];
+        for (const candidate of candidates) {
+            if (candidate && candidate.PDFDocument) {
+                return candidate;
+            }
         }
-        await loadScript(this, PDF_LIB);
-        if (!window.PDFLib || !window.PDFLib.PDFDocument) {
-            throw new Error('pdf-lib failed to expose window.PDFLib.PDFDocument.');
-        }
-        this.pdfLibInitialized = true;
+        return null;
     }
 
-    async processQueue() {
+    async ensurePdfLib() {
+        const existing = this.resolvePdfLib();
+        if (this.pdfLibInitialized && existing) {
+            return existing;
+        }
+        await loadScript(this, PDF_LIB);
+        const loaded = this.resolvePdfLib();
+        if (!loaded) {
+            throw new Error(
+                'pdf-lib loaded but PDFLib.PDFDocument was not found on window/self/globalThis.'
+            );
+        }
+        this.pdfLibInitialized = true;
+        return loaded;
+    }
+
+    async processQueue(manual) {
         if (this.isDestroyed || this.isProcessing) {
             return;
         }
 
         this.isProcessing = true;
+        this.isBusy = true;
         try {
-            await this.ensurePdfLib();
+            const PDFLib = await this.ensurePdfLib();
             const jobs = await getPendingJobs({ maxJobs: MAX_JOBS_PER_POLL });
             if (!Array.isArray(jobs) || jobs.length === 0) {
-                this.statusMessage = 'Idle — waiting for pending jobs.';
+                this.statusMessage = manual
+                    ? 'No pending jobs found.'
+                    : 'Ready — waiting for pending jobs.';
+                if (manual) {
+                    this.dispatchEvent(
+                        new ShowToastEvent({
+                            title: 'PDF Engine',
+                            message: 'No pending jobs in the queue.',
+                            variant: 'info'
+                        })
+                    );
+                }
                 return;
             }
 
+            let completed = 0;
             for (const job of jobs) {
                 if (this.isDestroyed) {
                     break;
                 }
                 this.statusMessage = 'Processing ' + (job.jobName || job.jobId) + '...';
-                await this.processSingleJob(job);
+                const ok = await this.processSingleJob(job, PDFLib);
+                if (ok) {
+                    completed += 1;
+                }
+            }
+
+            this.statusMessage =
+                'Processed ' + completed + ' of ' + jobs.length + ' job(s). Waiting for more...';
+            this.lastError = '';
+            if (manual) {
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'PDF Engine',
+                        message: 'Processed ' + completed + ' of ' + jobs.length + ' job(s).',
+                        variant: completed > 0 ? 'success' : 'warning'
+                    })
+                );
             }
             this.statusMessage = 'Idle — waiting for pending jobs.';
         } catch (error) {
-            this.statusMessage = this.normalizeError(error, 'Poll cycle failed.');
+            const message = this.normalizeError(error, 'Poll cycle failed.');
+            this.statusMessage = message;
+            this.lastError = message;
             // eslint-disable-next-line no-console
             console.error('automatedPdfEngine poll cycle failed', error);
+            if (manual) {
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'PDF Engine Error',
+                        message: message,
+                        variant: 'error',
+                        mode: 'sticky'
+                    })
+                );
+            }
         } finally {
             this.isProcessing = false;
+            this.isBusy = false;
         }
     }
 
-    async processSingleJob(job) {
+    async processSingleJob(job, PDFLib) {
         if (!job || !job.jobId) {
-            return;
+            return false;
         }
 
         try {
@@ -127,7 +189,7 @@ export default class AutomatedPdfEngine extends LightningElement {
             }
 
             const templateBytes = this.base64ToUint8Array(job.templateBase64);
-            const pdfDoc = await window.PDFLib.PDFDocument.load(templateBytes, {
+            const pdfDoc = await PDFLib.PDFDocument.load(templateBytes, {
                 ignoreEncryption: true
             });
             const form = pdfDoc.getForm();
@@ -165,8 +227,10 @@ export default class AutomatedPdfEngine extends LightningElement {
                 base64Pdf: outputBase64,
                 outputFileName: outputName
             });
+            return true;
         } catch (error) {
             const message = this.normalizeError(error, 'PDF generation failed in browser worker.');
+            this.lastError = message;
             // eslint-disable-next-line no-console
             console.error('automatedPdfEngine job failed', job.jobId, message);
             try {
@@ -175,6 +239,7 @@ export default class AutomatedPdfEngine extends LightningElement {
                 // eslint-disable-next-line no-console
                 console.error('automatedPdfEngine failJob callback failed', failError);
             }
+            return false;
         }
     }
 
