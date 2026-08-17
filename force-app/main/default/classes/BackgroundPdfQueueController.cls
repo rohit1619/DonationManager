@@ -52,6 +52,22 @@ public with sharing class BackgroundPdfQueueController {
                 );
             }
 
+            List<Pending_PDF_Generation__c> candidateJobs = [
+                SELECT Id
+                FROM Pending_PDF_Generation__c
+                WHERE Status__c = 'Pending'
+                WITH SECURITY_ENFORCED
+                ORDER BY CreatedDate ASC
+                LIMIT :batchSize
+            ];
+
+            if (candidateJobs.isEmpty()) {
+                return new List<PdfJobPacket>();
+            }
+
+            Set<Id> candidateIds = new Map<Id, Pending_PDF_Generation__c>(candidateJobs).keySet();
+
+            // FOR UPDATE queries cannot include an explicit ORDER BY clause.
             List<Pending_PDF_Generation__c> pendingJobs = [
                 SELECT
                     Id,
@@ -63,10 +79,8 @@ public with sharing class BackgroundPdfQueueController {
                     Template_Id__r.Object_API_Name__c,
                     Template_Id__r.File_Id__c
                 FROM Pending_PDF_Generation__c
-                WHERE Status__c = 'Pending'
+                WHERE Id IN :candidateIds AND Status__c = 'Pending'
                 WITH SECURITY_ENFORCED
-                ORDER BY CreatedDate ASC
-                LIMIT :batchSize
                 FOR UPDATE
             ];
 
