@@ -1,0 +1,9 @@
+**/*.ts
+**/*.ts.map
+**/.eslintrc.json
+**/jsconfig.json
+**/.eslintignore
+**/__tests__/**
+.sfdx
+.sf
+node_modules

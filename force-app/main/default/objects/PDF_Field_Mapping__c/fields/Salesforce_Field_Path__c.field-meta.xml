@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Salesforce_Field_Path__c</fullName>
+    <description>Salesforce field API path relative to the template object (e.g. Name, Account.Name, BillingCity).</description>
+    <externalId>false</externalId>
+    <label>Salesforce Field Path</label>
+    <length>255</length>
+    <required>true</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    {
+      "type": "salesforcedx-vscode-core.extensions",
+      "title": "Recommended Extensions for Salesforce Development",
+      "extensions": [
+        "salesforce.salesforcedx-vscode"
+      ]
+    }
+  ]
+}
